@@ -1,0 +1,45 @@
+# ===== Datasets (download separately, see README) =====
+datasets/
+*.cache
+
+# ===== Model weights (too large for git; use Releases if needed) =====
+*.pt
+*.pth
+*.onnx
+*.engine
+
+# ===== Training / evaluation outputs =====
+runs/
+wandb/
+*.csv
+tools/*.json
+
+# ===== Paper sources (not part of code release) =====
+paper/
+项目纲要.md
+项目纲要.pdf
+project_full_record.md
+project_outline.md
+
+# ===== Logs and scratch =====
+*.log
+_log_*.txt
+run_queue.sh
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# ===== Editor / OS =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+.agents/
+.claude/
+.codex

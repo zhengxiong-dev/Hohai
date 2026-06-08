@@ -1,0 +1,16 @@
+# Core
+ultralytics==8.4.26
+torch==2.6.0
+torchvision==0.21.0
+
+# Evaluation and utilities
+pycocotools==2.0.11
+numpy
+opencv-python
+pillow
+pandas
+matplotlib
+
+# Note: torch/torchvision above are the versions used in our experiments
+# (CUDA 12.4 build, i.e. torch==2.6.0+cu124). Install the build matching
+# your CUDA from https://pytorch.org if you need GPU support.
