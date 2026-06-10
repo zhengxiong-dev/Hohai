@@ -1,23 +1,37 @@
 """
-UAV-YOLO: Complete Experiment Runner
-=====================================
+UAV-YOLO / AFA-YOLO11: Complete Experiment Runner
+==================================================
 
 Usage:
+    # ===== Baseline & UAV-YOLO =====
     python train.py --exp baseline          # YOLO11s baseline
-    python train.py --exp uav_yolo          # Our full model (P2+BiFPN+EMA)
+    python train.py --exp uav_yolo_pt       # UAV-YOLO (P2+BiFPN+EMA)
+
+    # ===== AFA-YOLO11 (Recommended for thesis) =====
+    python train.py --exp sgfa_pt           # AFA: SGFA only (P2+SGFA)
+    python train.py --exp afa_yolo_safm_p2_pt  # AFA: SGFA+SAFM(P2)
+    python train.py --exp afa_yolo_final_pt # AFA: Final version (recommended)
+
+    # ===== Ablation Studies =====
     python train.py --exp ablation_p2       # Ablation: P2 only
     python train.py --exp ablation_bifpn    # Ablation: BiFPN only
     python train.py --exp ablation_ema      # Ablation: EMA only
     python train.py --exp ablation_p2_bifpn # Ablation: P2+BiFPN
     python train.py --exp ablation_p2_ema   # Ablation: P2+EMA
+
+    # ===== Comparison Experiments =====
     python train.py --exp compare_yolov8    # Comparison: YOLOv8s
     python train.py --exp compare_yolov9    # Comparison: YOLOv9s
     python train.py --exp compare_yolov10   # Comparison: YOLOv10s
     python train.py --exp compare_rtdetr    # Comparison: RT-DETR-l
+
+    # ===== Generalization =====
     python train.py --exp nwpu_uav_yolo     # Generalization: UAV-YOLO on NWPU
     python train.py --exp nwpu_baseline     # Generalization: YOLO11s on NWPU
     python train.py --exp aitod_baseline    # Generalization: YOLO11s on AI-TOD
     python train.py --exp aitod_uav_yolo    # Generalization: UAV-YOLO on AI-TOD
+
+    # ===== Run All =====
     python train.py --exp all               # Run ALL experiments sequentially
 """
 
@@ -158,6 +172,32 @@ def get_experiment_config(exp_name: str) -> dict:
             **COMMON_ARGS,
         ),
 
+        # ==================== AFA-YOLO11 EXPERIMENTS ====================
+        # AFA-YOLO11: Aligned Fusion Adaptive YOLO11
+        # Progressive experiments: SGFA only → SGFA+SAFM(P2) → Final
+
+        "sgfa_pt": dict(
+            model=str(MODELS_DIR / "afa-yolo-sgfa.yaml"),
+            data=str(VISDRONE_YAML),
+            name="visdrone_sgfa_pt",
+            load="yolo11s.pt",
+            **COMMON_ARGS,
+        ),
+        "afa_yolo_safm_p2_pt": dict(
+            model=str(MODELS_DIR / "afa-yolo-sgfa-safm-p2.yaml"),
+            data=str(VISDRONE_YAML),
+            name="visdrone_afa_yolo_safm_p2_pt",
+            load="yolo11s.pt",
+            **COMMON_ARGS,
+        ),
+        "afa_yolo_final_pt": dict(
+            model=str(MODELS_DIR / "afa-yolo-final.yaml"),
+            data=str(VISDRONE_YAML),
+            name="visdrone_afa_yolo_final_pt",
+            load="yolo11s.pt",
+            **COMMON_ARGS,
+        ),
+
         # ==================== COMPARISON EXPERIMENTS ====================
         "compare_yolov8": dict(
             model="yolov8s.pt",
@@ -231,23 +271,32 @@ def get_experiment_config(exp_name: str) -> dict:
 
 # Order for running all experiments
 ALL_EXPERIMENTS = [
+    # Baseline & UAV-YOLO
     "baseline",
     "uav_yolo",
+    # Ablation studies
     "ablation_p2",
     "ablation_bifpn",
     "ablation_ema",
     "ablation_p2_bifpn",
     "ablation_p2_ema",
+    # Pretrained backbone experiments
     "p2_pt",
     "ema_pt",
     "bifpn_pt",
     "p2_bifpn_pt",
     "p2_ema_pt",
     "uav_yolo_pt",
+    # AFA-YOLO11 experiments (NEW)
+    "sgfa_pt",
+    "afa_yolo_safm_p2_pt",
+    "afa_yolo_final_pt",
+    # Comparison experiments
     "compare_yolov8",
     "compare_yolov9",
     "compare_yolov10",
     "compare_rtdetr",
+    # Generalization experiments
     "nwpu_baseline",
     "nwpu_uav_yolo",
     "aitod_baseline",

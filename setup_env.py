@@ -27,16 +27,25 @@ def patch_tasks_py(ul_path):
     with open(tasks_path, "r", encoding="utf-8") as f:
         content = f.read()
 
-    # Skip if already patched
+    # Check if already patched and update if needed
     if "# === UAV-YOLO PATCH ===" in content:
-        print("[tasks.py] Already patched, skipping.")
-        return
+        # Update the import line if SOA_SAFM is missing
+        old_import = "from ultralytics.nn.modules.custom import EMA, BiFPN_Concat, SGFA"
+        new_import = "from ultralytics.nn.modules.custom import EMA, BiFPN_Concat, SGFA, SOA_SAFM"
+        if old_import in content and new_import not in content:
+            content = content.replace(old_import, new_import)
+            print("[tasks.py] Updating existing patch to include SOA_SAFM...")
+        else:
+            print("[tasks.py] Already up to date, skipping.")
+            with open(tasks_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            return
 
     # --- 1. Add import for our custom modules at the top (after existing imports) ---
     import_marker = "from ultralytics.nn.modules import ("
     custom_import = (
         "# === UAV-YOLO PATCH === Custom module imports\n"
-        "from ultralytics.nn.modules.custom import EMA, BiFPN_Concat\n"
+        "from ultralytics.nn.modules.custom import EMA, BiFPN_Concat, SGFA, SOA_SAFM\n"
         "# === END UAV-YOLO PATCH ===\n\n"
     )
     content = content.replace(import_marker, custom_import + import_marker)
@@ -48,11 +57,26 @@ def patch_tasks_py(ul_path):
         "A2C2f,\n            EMA,\n        }\n    )\n    repeat_modules",
     )
 
-    # --- 3. Add BiFPN_Concat handling alongside Concat ---
+    # --- 3. Add BiFPN_Concat and SGFA handling alongside Concat ---
     content = content.replace(
         "elif m is Concat:",
-        "elif m is Concat or m is BiFPN_Concat:",
+        "elif m is Concat or m is BiFPN_Concat or m is SGFA:",
     )
+
+    # --- 4. Add SOA_SAFM special handling (output channels = target input channels) ---
+    # Insert after the Concat handling
+    safm_handling = (
+        "        elif m is SOA_SAFM:\n"
+        "            target_index = args[0] if args else 0\n"
+        "            c2 = ch[f[target_index]]\n"
+    )
+    # Find the line after "elif m is Concat..." block and insert SOA_SAFM handling
+    concat_block = "elif m is Concat or m is BiFPN_Concat or m is SGFA:\n            c2 = sum(ch[x] for x in f)"
+    if concat_block in content and safm_handling.strip() not in content:
+        content = content.replace(
+            concat_block,
+            concat_block + "\n" + safm_handling
+        )
 
     with open(tasks_path, "w", encoding="utf-8") as f:
         f.write(content)
@@ -77,7 +101,7 @@ def install_custom_modules(ul_path):
         # Add import at the end of the imports section
         init_content += (
             "\n# === UAV-YOLO PATCH ===\n"
-            "from .custom import EMA, BiFPN_Concat\n"
+            "from .custom import EMA, BiFPN_Concat, SGFA, SOA_SAFM\n"
             "# === END UAV-YOLO PATCH ===\n"
         )
         with open(init_path, "w", encoding="utf-8") as f:
@@ -95,9 +119,11 @@ def verify_patch():
         del sys.modules[k]
 
     try:
-        from ultralytics.nn.modules.custom import EMA, BiFPN_Concat
+        from ultralytics.nn.modules.custom import EMA, BiFPN_Concat, SGFA, SOA_SAFM
         print(f"\n[VERIFY] EMA imported successfully: {EMA}")
         print(f"[VERIFY] BiFPN_Concat imported successfully: {BiFPN_Concat}")
+        print(f"[VERIFY] SGFA imported successfully: {SGFA}")
+        print(f"[VERIFY] SOA_SAFM imported successfully: {SOA_SAFM}")
 
         import torch
         # Quick test EMA
@@ -114,6 +140,27 @@ def verify_patch():
         c = bfp([a, b])
         assert c.shape == (1, 384, 32, 32), f"BiFPN shape: {c.shape}"
         print(f"[VERIFY] BiFPN_Concat forward pass OK: 128+256 -> {c.shape[1]}")
+
+        # Quick test SGFA
+        sgfa = SGFA(dimension=1, ratio=1.0)
+        f_high = torch.randn(1, 512, 16, 16)
+        f_low = torch.randn(1, 256, 32, 32)
+        out = sgfa([f_high, f_low])
+        # Output should be concat of projected features
+        print(f"[VERIFY] SGFA forward pass OK: {f_high.shape} + {f_low.shape} -> {out.shape}")
+        assert out.shape[2:] == f_low.shape[2:], f"SGFA spatial shape mismatch"
+        assert out.shape[1] == 256 + 512, f"SGFA channel mismatch: {out.shape[1]} vs 768"
+
+        # Quick test SOA_SAFM
+        safm = SOA_SAFM(target_index=0, ratio=1.0)
+        p2 = torch.randn(1, 128, 32, 32)
+        p3 = torch.randn(1, 256, 16, 16)
+        p4 = torch.randn(1, 512, 8, 8)
+        out = safm([p2, p3, p4])
+        # Output should have target scale spatial size and channels
+        print(f"[VERIFY] SOA_SAFM forward pass OK: [P2, P3, P4] -> {out.shape}")
+        assert out.shape[2:] == p2.shape[2:], f"SOA_SAFM spatial mismatch"
+        assert out.shape[1] == 128, f"SOA_SAFM channel mismatch: {out.shape[1]} vs 128"
 
         print("\n=== All patches applied and verified successfully! ===")
         return True
