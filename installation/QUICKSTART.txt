@@ -1,0 +1,106 @@
+═══════════════════════════════════════════════════════════════
+  UAV-YOLO 云服务器一键部署指南
+═══════════════════════════════════════════════════════════════
+
+📥 第一步: 上传代码到服务器
+──────────────────────────────────────────────────────────────
+
+方法1: Git克隆
+  git clone <your-repo> && cd UAV-YOLO
+
+方法2: SCP上传
+  scp -r UAV-YOLO/ user@server:/path/
+  ssh user@server
+  cd /path/UAV-YOLO
+
+
+⚡ 第二步: 选择安装方式
+──────────────────────────────────────────────────────────────
+
+1️⃣  完整安装 (推荐首次使用)
+    bash install.sh
+    
+    • 自动检测GPU和CUDA版本
+    • 创建conda或venv环境
+    • 完整验证和错误报告
+    • 时间: 3-5分钟
+
+2️⃣  快速安装 (熟悉用户)
+    bash quick_install.sh
+    
+    • 无交互确认
+    • 默认配置
+    • 时间: 1-2分钟
+
+3️⃣  Python安装 (跨平台)
+    python3 install_env.py
+    
+    • 纯Python实现
+    • 更好的错误处理
+
+
+🎮 第三步: 使用项目
+──────────────────────────────────────────────────────────────
+
+# 激活环境
+conda activate uav-yolo          # conda方式
+# 或
+source venv/bin/activate         # venv方式
+
+# 验证安装
+python -c "import torch; print('CUDA:', torch.cuda.is_available())"
+
+# 查看训练选项
+python train.py --help
+
+# 开始训练
+python train.py --exp baseline
+
+
+🔧 常用选项
+──────────────────────────────────────────────────────────────
+
+CPU模式 (无GPU服务器):
+  bash install.sh --cpu-only
+
+指定CUDA版本:
+  bash install.sh --cuda-version 12.1
+
+使用系统Python (不要conda):
+  bash install.sh --skip-conda
+
+
+📋 文件说明
+──────────────────────────────────────────────────────────────
+
+install.sh         - 完整Bash安装脚本 (推荐)
+install_env.py     - Python安装脚本 (备选)
+quick_install.sh   - 快速安装脚本 (极简)
+INSTALL.md         - 详细安装指南
+DEPLOYMENT.md      - 部署快速参考
+README.md          - 项目文档
+setup_env.py       - 自定义模块配置
+
+
+🆘 遇到问题?
+──────────────────────────────────────────────────────────────
+
+1. 查看详细文档: cat INSTALL.md
+2. 检查CUDA:      nvidia-smi
+3. 重新安装:      bash install.sh --cuda-version 12.1
+4. CPU模式测试:   bash install.sh --cpu-only
+
+
+✅ 安装完成后
+──────────────────────────────────────────────────────────────
+
+✓ Python虚拟环境已创建
+✓ PyTorch (GPU/CPU版本) 已安装
+✓ 所有依赖包已安装
+✓ 自定义模块已配置
+✓ 可以开始训练!
+
+
+═══════════════════════════════════════════════════════════════
+  准备就绪! 祝训练顺利! 🚀
+═══════════════════════════════════════════════════════════════
